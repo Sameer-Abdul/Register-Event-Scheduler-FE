@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { getEventRegistrations, registerForEvent } from '@/lib/eventDb';
+import { getEventParticipants as getEventRegistrations, registerParticipant } from '@/lib/eventDb';
 import { EventRegistration } from '@/types/event';
 
 // GET /api/events/[eventId]/registrations - Get all registrations for an event
@@ -59,33 +59,35 @@ export async function POST(
       );
     }
 
-    const registrationData: Omit<
-      EventRegistration, 
-      'registration_id' | 'event_id' | 'registration_date' | 'created_at' | 'updated_at'
-    > = await request.json();
+    const requestData = await request.json();
+    
+    // Map the request data to match the Participant type
+    const participantData = {
+      name: requestData.attendee_name,
+      email: requestData.attendee_email,
+      // Add other fields as needed
+    };
 
     // Basic validation
-    if (!registrationData.attendee_name || !registrationData.attendee_email) {
+    if (!participantData.name || !participantData.email) {
       return NextResponse.json(
         { success: false, error: 'Name and email are required' },
         { status: 400 }
       );
     }
 
-    // Add tenant_id from session if available
-    const tenantId = session.user.tenantId as string | undefined;
-    if (!tenantId) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const registration = await registerForEvent(eventId, {
-      ...registrationData,
-      tenant_id: tenantId,
-      status: 'REGISTERED',
-      payment_status: 'PENDING'
+    // Register the participant with required fields
+    const registration = await registerParticipant({
+      name: participantData.name,
+      email: participantData.email,
+      phone_no: requestData.phone || '', // Default empty string if not provided
+      address: requestData.address || '', // Default empty string if not provided
+      gender: requestData.gender || 'other', // Default to 'other' if not provided
+      event_id: eventId,
+      age: requestData.age ? parseInt(requestData.age) : 0, // Default to 0 if not provided
+      latitude: requestData.latitude?.toString() || null,
+      longitude: requestData.longitude?.toString() || null,
+      prerequisites_completed: requestData.mandatoryPrerequisite || false
     });
 
     return NextResponse.json(
