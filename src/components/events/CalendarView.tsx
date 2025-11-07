@@ -20,7 +20,7 @@ import {
   isSameDay,
   differenceInMinutes,
 } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { PlusCircle, RefreshCw, MapPin, Users, Clock, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';

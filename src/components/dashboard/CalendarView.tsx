@@ -1,11 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Calendar as BigCalendar, dateFnsLocalizer, Event } from 'react-big-calendar';
+import { Calendar as BigCalendar, dateFnsLocalizer, type Event as RBCEvent } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
-import enUS from 'date-fns/locale/en-US';
+import { enUS } from 'date-fns/locale/en-US';
 import { useQuery } from '@tanstack/react-query';
-import { Event as EventType } from '@/types/event';
+import type { Event as ApiEvent } from '@/types/event';
+
+// Extend the base RBC event type with our custom fields
+type CalendarEvent = Omit<ApiEvent, 'start' | 'end'> & RBCEvent & {
+  start: Date;
+  end: Date;
+};
 import EventDetailsModal from '@/components/events/EventDetailsModal';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -25,10 +31,10 @@ const localizer = dateFnsLocalizer({
 
 export default function CalendarView() {
   const router = useRouter();
-  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ApiEvent | null>(null);
 
   // Fetch events from the API
-  const { data: events = [], isLoading } = useQuery<EventType[]>({
+  const { data: events = [], isLoading } = useQuery<CalendarEvent[]>({
     queryKey: ['events'],
     queryFn: async () => {
       const response = await fetch('/api/events');
@@ -39,17 +45,17 @@ export default function CalendarView() {
     },
   });
 
-  const handleSelectEvent = useCallback((event: Event) => {
-    setSelectedEvent(event as EventType);
+  const handleSelectEvent = useCallback((event: CalendarEvent) => {
+    setSelectedEvent(event as ApiEvent);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
   }, []);
 
-  const handleNavigate = () => {
+  const handleNavigate = useCallback(() => {
     router.push('/events/create');
-  };
+  }, []);
 
   if (isLoading) {
     return (
