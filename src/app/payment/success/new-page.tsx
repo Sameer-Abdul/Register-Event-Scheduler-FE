@@ -8,40 +8,12 @@ import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import type { Event as ApiEvent } from '@/types/event';
 import axios from 'axios';
 import * as yup from 'yup';
 
-// Define the Event interface with all required properties
-interface Event {
-  id: string;
-  name: string;
-  description: string;
-  start: Date | string;
-  end: Date | string;
-  organizationPOC: string;
-  pocMobile: string;
-  pocEmail: string;
-  alternateNumber?: string;
-  venue: string;
-  organizationName: string;
-  latitude?: number;
-  longitude?: number;
-  eventCoordinator: string;
-  comments?: string;
-  performanceType: 'single' | 'group';
-  participants: Array<{
-    name: string;
-    age: number;
-    phone: string;
-    email?: string;
-    address: string;
-    gender: string;
-    comments?: string;
-    mandatoryPrerequisite?: string;
-    latitude?: number;
-    longitude?: number;
-  }>;
-}
+// Use the Event type from the types directory
+type Event = ApiEvent;
 
 // Define the event data types
 interface RegistrationData {
@@ -120,7 +92,7 @@ interface EventsListProps {
 
 // Dynamically import modules for code-splitting with proper typing
 const CalendarView = dynamic<CalendarViewProps>(
-  () => import('@/components/events/CalendarView').then(mod => mod.CalendarView),
+  () => import('@/components/events/CalendarView').then(mod => mod.default),
   { loading: () => <Skeleton className="h-[600px] w-full" />, ssr: false }
 );
 
@@ -212,7 +184,7 @@ export default function SuccessPage() {
         await fetchEvents();
         
         // If the deleted event was selected, clear the selection
-        if (selectedEvent?.id === eventId) {
+        if (selectedEvent?.id === Number(eventId)) {
           setSelectedEvent(null);
           setIsModalOpen(false);
         }
@@ -227,6 +199,12 @@ export default function SuccessPage() {
 
   // Handle event selection from calendar
   const handleSelectEvent = (event: Event) => {
+    const calendarEvents = events.map((event) => ({
+      ...event,
+      start: new Date(`${event.date}T${event.start_time}`),
+      end: new Date(`${event.date}T${event.end_time}`),
+      title: event.name,
+    }));
     setSelectedEvent(event);
     setIsModalOpen(true);
   };
@@ -391,7 +369,7 @@ export default function SuccessPage() {
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">When</h3>
                     <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {new Date(selectedEvent.start).toLocaleString()} - {new Date(selectedEvent.end).toLocaleString()}
+                      {new Date(`${selectedEvent.date}T${selectedEvent.start_time}`).toLocaleString()} - {new Date(`${selectedEvent.date}T${selectedEvent.end_time}`).toLocaleString()}
                     </p>
                   </div>
                   
@@ -400,10 +378,10 @@ export default function SuccessPage() {
                     <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.venue}</p>
                   </div>
                   
-                  {selectedEvent.description && (
+                  {selectedEvent.name && (
                     <div>
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</h3>
-                      <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.description}</p>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Event Name</h3>
+                      <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.name}</p>
                     </div>
                   )}
                   
