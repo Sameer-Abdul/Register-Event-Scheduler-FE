@@ -2,29 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   CalendarIcon,
   PlusCircleIcon,
-  ViewListIcon,
+  ListBulletIcon,
   UserCircleIcon,
-  LogoutIcon,
-} from '@heroicons/react/outline';
+  ArrowRightOnRectangleIcon as LogoutIcon,
+} from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'Calendar', href: '/payment/success', icon: CalendarIcon },
   { name: 'Create Event', href: '/payment/success/create', icon: PlusCircleIcon },
-  { name: 'View Events', href: '/payment/success/events', icon: ViewListIcon },
+  { name: 'View Events', href: '/payment/success/events', icon: ListBulletIcon },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
-    <div className="hidden md:flex md:flex-shrink-0">
+    <div className="hidden md:flex md:shrink-0">
       <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
-        <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
+        <div className="flex flex-col grow pt-5 pb-4 overflow-y-auto">
+          <div className="flex items-center shrink-0 px-4">
             <h1 className="text-xl font-bold text-gray-900">Event Scheduler</h1>
           </div>
           <div className="mt-5 flex-1 flex flex-col">
@@ -53,7 +54,7 @@ export default function Sidebar() {
               })}
             </nav>
           </div>
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <div className="shrink-0 flex border-t border-gray-200 p-4">
             <div className="flex items-center">
               <div>
                 <UserCircleIcon className="h-10 w-10 text-gray-400" aria-hidden="true" />
