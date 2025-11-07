@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Calendar as BigCalendar, dateFnsLocalizer, Event } from 'react-big-calendar';
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
-import startOfWeek from 'date-fns/startOfWeek';
-import getDay from 'date-fns/getDay';
-import enUS from 'date-fns/locale/en-US';
+import { Calendar as BigCalendar, dateFnsLocalizer, type Event as RBCEvent } from 'react-big-calendar';
+import { format } from 'date-fns/format';
+import { parse } from 'date-fns/parse';
+import { startOfWeek } from 'date-fns/startOfWeek';
+import { getDay } from 'date-fns/getDay';
+import { enUS } from 'date-fns/locale/en-US';
 import { useQuery } from '@tanstack/react-query';
-import { Event as EventType } from '@/types/event';
+import type { Event as EventType } from '@/types/event';
 import EventDetailsModal from '@/components/events/EventDetailsModal';
 
 const locales = {
@@ -27,18 +27,19 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
 
   // Fetch events from the API
-  const { data: events = [], isLoading } = useQuery<EventType[]>({
+  const { data, isLoading, error } = useQuery<EventType[]>({
     queryKey: ['events'],
     queryFn: async () => {
       const response = await fetch('/api/events');
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
-      return response.json();
+      const events = await response.json();
+      return Array.isArray(events) ? events : [];
     },
   });
 
-  const handleSelectEvent = useCallback((event: Event) => {
+  const handleSelectEvent = useCallback((event: RBCEvent) => {
     setSelectedEvent(event as EventType);
   }, []);
 
@@ -53,6 +54,26 @@ export default function CalendarPage() {
       </div>
     );
   }
+
+  const events: RBCEvent[] = (data || []).map(event => {
+    // Create start and end dates by combining date with time
+    const startDate = new Date(event.date);
+    const [startHours, startMinutes] = event.start_time.split(':').map(Number);
+    startDate.setHours(startHours, startMinutes, 0, 0);
+
+    const endDate = new Date(event.date);
+    const [endHours, endMinutes] = event.end_time.split(':').map(Number);
+    endDate.setHours(endHours, endMinutes, 0, 0);
+
+    return {
+      ...event,
+      start: startDate,
+      end: endDate,
+      title: event.name,
+      allDay: false,
+      resource: event,
+    } as unknown as RBCEvent;
+  });
 
   return (
     <div className="h-[calc(100vh-8rem)]">
