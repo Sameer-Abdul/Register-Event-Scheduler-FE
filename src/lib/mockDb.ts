@@ -4,28 +4,27 @@ import { Event, Participant } from '@/types/event';
 // In-memory database for development
 const db = {
   events: [] as Event[],
-  participants: new Map<string, Participant[]>(),
+  participants: new Map<number, Participant[]>(),
 };
 
 // Helper function to find an event by ID
 const findEventById = (id: string): Event | undefined => {
-  return db.events.find(event => event.id === id);
+  return db.events.find(event => event.id.toString() === id);
 };
 
 // Helper function to find events by user ID (for filtering)
-const findEventsByUserId = (userId: string): Event[] => {
-  return db.events.filter(event => event.userId === userId);
+const findEventsByUserId = (userId: number): Event[] => {
+  return db.events.filter(event => event.created_by === userId);
 };
 
 // Create a new event
-const createEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'userId'>, userId: string): Event => {
+const createEvent = (eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>, userId: number): Event => {
   const newEvent: Event = {
     ...eventData,
-    id: uuidv4(),
-    userId,
-    participants: eventData.participants || [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    id: Date.now(),
+    created_by: userId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   
   db.events.push(newEvent);
@@ -33,14 +32,14 @@ const createEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | '
 };
 
 // Update an existing event
-const updateEvent = (id: string, updates: Partial<Event>): Event | null => {
+const updateEvent = (id: number, updates: Partial<Event>): Event | null => {
   const eventIndex = db.events.findIndex(e => e.id === id);
   if (eventIndex === -1) return null;
   
   const updatedEvent = {
     ...db.events[eventIndex],
     ...updates,
-    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   
   db.events[eventIndex] = updatedEvent;
@@ -48,60 +47,48 @@ const updateEvent = (id: string, updates: Partial<Event>): Event | null => {
 };
 
 // Delete an event
-const deleteEvent = (id: string): boolean => {
+const deleteEvent = (id: number): boolean => {
   const initialLength = db.events.length;
-  db.events = db.events.filter(event => event.id !== id);
-  return db.events.length < initialLength;
+  db.events = db.events.filter(e => e.id !== id);
+  return db.events.length !== initialLength;
 };
 
 // Initialize with some mock data if needed
 const initializeMockData = () => {
   if (db.events.length === 0) {
     const event1: Event = {
-      id: uuidv4(),
+      id: 1,
       name: 'Team Meeting',
-      description: 'Weekly team sync',
-      start: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-      end: new Date(Date.now() + 86400000 + 3600000).toISOString(), // 1 hour later
-      organizationPOC: 'John Doe',
-      pocMobile: '+1234567890',
-      pocEmail: 'john@example.com',
-      alternateNumber: '+1987654321',
+      mode_of_event: 'In-Person',
+      date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+      start_time: '10:00:00',
+      end_time: '11:00:00',
       venue: 'Conference Room A',
-      organizationName: 'Acme Inc',
-      latitude: 40.7128,
-      longitude: -74.0060,
-      eventCoordinator: 'Jane Smith',
-      comments: 'Bring your laptops',
-      participants: [],
-      performanceType: 'single',
-      userId: 'user-1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      organization_name: 'Acme Inc',
+      organization_contact: '1234567890',
+      organization_email: 'contact@acme.com',
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     const event2: Event = {
-      id: uuidv4(),
+      id: 2,
       name: 'Product Demo',
-      description: 'Showcase new features',
-      start: new Date(Date.now() + 172800000).toISOString(), // 2 days later
-      end: new Date(Date.now() + 172800000 + 7200000).toISOString(), // 2 hours later
-      organizationPOC: 'Alice Johnson',
-      pocMobile: '+1987654321',
-      pocEmail: 'alice@example.com',
-      alternateNumber: '+1234567890',
+      mode_of_event: 'Online',
+      date: new Date(Date.now() + 172800000).toISOString().split('T')[0], // 2 days later
+      start_time: '14:00:00',
+      end_time: '16:00:00',
       venue: 'Online',
-      organizationName: 'Tech Corp',
-      latitude: 37.7749,
-      longitude: -122.4194,
-      eventCoordinator: 'Bob Wilson',
-      comments: 'Join via Zoom link',
-      participants: [],
-      performanceType: 'group',
-      userId: 'user-1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      organization_name: 'Tech Corp',
+      organization_contact: '+1987654321',
+      organization_email: 'alice@example.com',
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
+    
+    db.events.push(event1, event2);
 
     db.events = [event1, event2];
   }
