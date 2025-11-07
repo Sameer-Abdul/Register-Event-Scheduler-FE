@@ -21,9 +21,10 @@ import { cn } from '@/lib/utils';
 const PERFORMANCE_TYPES = ['single', 'group'] as const;
 type PerformanceType = (typeof PERFORMANCE_TYPES)[number];
 
-const performanceTypeSchema = z.enum(PERFORMANCE_TYPES, {
-  errorMap: () => ({ message: 'Please select a performance type' })
-});
+const performanceTypeSchema = z.enum(PERFORMANCE_TYPES)
+  .refine((val) => !!val, {
+    message: 'Please select a performance type',
+  });
 
 const participantSchema = z.object({
   name: z.string().min(1, 'Name is required'),
