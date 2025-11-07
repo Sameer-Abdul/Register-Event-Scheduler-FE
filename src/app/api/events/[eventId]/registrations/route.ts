@@ -1,14 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getEventParticipants as getEventRegistrations, registerParticipant } from '@/lib/eventDb';
-import { EventRegistration } from '@/types/event';
+import { EventRegistration, Participant } from '@/types/event';
+
+type RouteParams = {
+  params: {
+    eventId: string;
+  };
+};
 
 // GET /api/events/[eventId]/registrations - Get all registrations for an event
 export async function GET(
-  request: Request,
-  { params }: { params: { eventId: string } }
-) {
+  request: NextRequest,
+  { params }: RouteParams
+): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -39,9 +45,9 @@ export async function GET(
 
 // POST /api/events/[eventId]/registrations - Register for an event
 export async function POST(
-  request: Request,
-  { params }: { params: { eventId: string } }
-) {
+  request: NextRequest,
+  { params }: RouteParams
+): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
