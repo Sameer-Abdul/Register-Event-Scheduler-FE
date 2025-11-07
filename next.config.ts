@@ -1,23 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
   images: {
-    domains: [
-      'upload.wikimedia.org',
-      'localhost',
-      'res.cloudinary.com',
-      'example.com',
-      // Add other domains as needed
-    ],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // This allows all HTTPS domains
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
+  // Remove the deprecated 'target' option as it's not needed in modern Next.js
+  // Remove the deprecated 'future' option as it's now the default
 };
 
 export default nextConfig;
