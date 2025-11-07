@@ -12,11 +12,8 @@ export const revalidate = 0;
 export const runtime = 'nodejs';
 
 // Disable body parsing for file uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const maxDuration = 30; // seconds
+export const fetchCache = 'force-no-store';
 
 interface ErrorWithMessage extends Error {
   message: string;

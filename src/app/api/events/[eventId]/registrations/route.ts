@@ -4,17 +4,11 @@ import { authOptions } from '@/lib/auth';
 import { getEventParticipants as getEventRegistrations, registerParticipant } from '@/lib/eventDb';
 import { EventRegistration, Participant } from '@/types/event';
 
-type RouteParams = {
-  params: {
-    eventId: string;
-  };
-};
-
 // GET /api/events/[eventId]/registrations - Get all registrations for an event
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
-): Promise<NextResponse> {
+  context: { params: { eventId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -24,7 +18,7 @@ export async function GET(
       );
     }
 
-    const eventId = parseInt(params.eventId);
+    const eventId = parseInt(context.params.eventId);
     if (isNaN(eventId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid event ID' },
@@ -46,8 +40,8 @@ export async function GET(
 // POST /api/events/[eventId]/registrations - Register for an event
 export async function POST(
   request: NextRequest,
-  { params }: RouteParams
-): Promise<NextResponse> {
+  context: { params: { eventId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -57,7 +51,7 @@ export async function POST(
       );
     }
 
-    const eventId = parseInt(params.eventId);
+    const eventId = parseInt(context.params.eventId);
     if (isNaN(eventId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid event ID' },
