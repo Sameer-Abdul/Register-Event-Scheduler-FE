@@ -7,11 +7,10 @@ import { Event, Participant } from '@/types/event';
 // GET /api/events/[eventId]/participants/[participantId] - Get a specific participant
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string; participantId: string } }
+  context: { params: { eventId: string; participantId: string } }
 ) {
+  const { eventId, participantId } = context.params;
   try {
-    const eventId = params.eventId;
-    const participantId = params.participantId;
     
     // Fetch participants for the event
     const participants = await getEventParticipants(parseInt(eventId));
@@ -26,7 +25,7 @@ export async function GET(
     
     return NextResponse.json(participant);
   } catch (error) {
-    console.error(`Error fetching participant ${params.participantId}:`, error);
+    console.error(`Error fetching participant ${participantId}:`, error);
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
@@ -37,11 +36,10 @@ export async function GET(
 // PUT /api/events/[eventId]/participants/[participantId] - Update a participant
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string; participantId: string } }
+  context: { params: { eventId: string; participantId: string } }
 ) {
+  const { eventId, participantId } = context.params;
   try {
-    const eventId = params.eventId;
-    const participantId = params.participantId;
     
     // Get the participant
     const participants = await getEventParticipants(parseInt(eventId));
@@ -67,7 +65,7 @@ export async function PUT(
     // For now, we'll just return the updated participant
     return NextResponse.json(updatedParticipant);
   } catch (error) {
-    console.error(`Error updating participant ${params.participantId}:`, error);
+    console.error(`Error updating participant ${participantId}:`, error);
     return NextResponse.json(
       { message: 'Error updating participant' },
       { status: 500 }
@@ -78,11 +76,10 @@ export async function PUT(
 // DELETE /api/events/[eventId]/participants/[participantId] - Delete a participant
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string; participantId: string } }
+  context: { params: { eventId: string; participantId: string } }
 ) {
+  const { eventId, participantId } = context.params;
   try {
-    const eventId = params.eventId;
-    const participantId = params.participantId;
     
     // Check if participant exists
     const participants = await getEventParticipants(parseInt(eventId));
@@ -102,7 +99,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    console.error(`Error deleting participant ${params.participantId}:`, error);
+    console.error(`Error deleting participant ${participantId}:`, error);
     return NextResponse.json(
       { message: 'Error deleting participant' },
       { status: 500 }
