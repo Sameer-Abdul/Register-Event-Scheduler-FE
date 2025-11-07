@@ -11,14 +11,14 @@ import {
   View,
   DateLocalizer
 } from 'react-big-calendar';
-import { 
-  format, 
-  parse, 
-  startOfWeek, 
-  getDay, 
+  import {
+  format,
+  parse,
+  startOfWeek,
+  getDay,
   isToday as isDateToday,
   isSameDay,
-  differenceInMinutes
+  differenceInMinutes,
 } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -43,19 +43,24 @@ interface CalendarViewProps {
 }
 
 // Extend the base RBC event type with our custom fields
-type CalendarEvent = ApiEvent & RBCEvent & {
+type CalendarEvent = Omit<ApiEvent, 'start' | 'end' | 'id'> & RBCEvent & {
+  id: string | number; // Allow both string and number for ID in the calendar
   title: string;
+  start: Date;
+  end: Date;
   allDay?: boolean;
   isPast?: boolean;
   isToday?: boolean;
   isSelected?: boolean;
   resource?: any;
+  // Add any additional properties that might be needed
+  zoom_join_url?: string;
 };
 
 // Custom event component for better visual representation
 const EventComponent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
-  const start = new Date(event.start);
-  const end = new Date(event.end);
+  const start = event.start instanceof Date ? event.start : new Date();
+  const end = event.end instanceof Date ? event.end : new Date(start.getTime() + 60 * 60 * 1000);
   const duration = differenceInMinutes(end, start);
   
   return (
@@ -65,8 +70,8 @@ const EventComponent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
         {
           'bg-blue-50 border-l-4 border-blue-500': !event.isPast,
           'bg-gray-100 border-l-4 border-gray-400': event.isPast,
-          'border-l-red-500': event.performanceType === 'single',
-          'border-l-green-500': event.performanceType === 'group'
+          'border-l-red-500': event.performance_type === 'single',
+          'border-l-green-500': event.performance_type === 'group'
         }
       )}>
         <div className="font-medium truncate">{event.title}</div>
@@ -84,7 +89,7 @@ const EventComponent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
         )}
         <div className="flex items-center mt-0.5 text-gray-600">
           <Users className="w-3 h-3 mr-1" />
-          <span className="capitalize">{event.performanceType} Event</span>
+          <span className="capitalize">{event.performance_type || 'unknown'} Event</span>
         </div>
       </div>
     </div>
@@ -112,36 +117,53 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectSlot,
   defaultView = 'week' as View,
   className = '',
-}) => {
-  const [selectedEvent, setSelectedEvent] = useState<ApiEvent | null>(null);
+}: CalendarViewProps) => {
+  const [currentView, setCurrentView] = useState<View>(defaultView);
+  const [selectedEvent, setSelectedEvent] = useState<Partial<ApiEvent> | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [view, setView] = useState(defaultView);
   const router = useRouter();
 
   // Transform API data to calendar events with additional metadata
-  const events: CalendarEvent[] = useMemo(() => {
-    const now = new Date();
+  const events = useMemo(() => {
     return eventsData.map(event => {
-      const start = new Date(event.start);
-      const end = new Date(event.end);
+      const startDate = event.date && event.start_time 
+        ? new Date(`${event.date}T${event.start_time}`)
+        : new Date();
+      const endDate = event.date && event.end_time
+        ? new Date(`${event.date}T${event.end_time}`)
+        : new Date(startDate.getTime() + 60 * 60 * 1000); // Default 1 hour duration
+
       return {
         ...event,
         title: event.name,
-        start,
-        end,
-        allDay: false,
-        isPast: end < now,
-        isToday: isSameDay(start, now),
-        isSelected: selectedEvent?.id === event.id,
-      };
+        start: startDate,
+        end: endDate,
+      } as CalendarEvent;
     });
-  }, [eventsData, selectedEvent]);
+  }, [eventsData]);
 
   // Handle event selection
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event);
+    // Create a proper ApiEvent object with all required fields
+    const apiEvent: ApiEvent = {
+      ...event,
+      id: Number(event.id), // Ensure ID is a number
+      name: event.title || '',
+      mode_of_event: event.mode_of_event || 'In-Person',
+      date: event.date || new Date().toISOString().split('T')[0],
+      start_time: event.start_time || format(event.start, 'HH:mm:ss'),
+      end_time: event.end_time || format(event.end, 'HH:mm:ss'),
+      venue: event.venue || '',
+      created_at: event.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: event.created_by || 1, // Default user ID
+    };
+    
+    setSelectedEvent(apiEvent);
+    setIsModalOpen(true);
     if (onEventClick) {
-      onEventClick(event);
+      onEventClick(apiEvent);
     }
   }, [onEventClick]);
 
@@ -151,8 +173,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   // Handle view change
-  const handleViewChange = useCallback((newView: string) => {
-    setView(newView);
+  const handleViewChange = useCallback((newView: View) => {
+    setCurrentView(newView);
   }, []);
 
   // Handle slot selection for creating new events
@@ -279,7 +301,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return (
       <div className="rounded-md bg-red-50 p-4">
         <div className="flex">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
           </div>
           <div className="ml-3">
@@ -330,30 +352,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         events={events}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: '100%' }}
-        onSelectEvent={handleSelectEvent}
-        onNavigate={handleNavigate}
-        onView={handleViewChange}
-        view={view}
-        date={currentDate}
+        style={{ height: 700 }}
         defaultView={defaultView}
-        views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-        selectable={!!onSelectSlot}
-        onSelectSlot={onSelectSlot ? handleSelectSlot : undefined}
+        view={currentView}
+        onView={handleViewChange}
+        onSelectEvent={handleSelectEvent}
+        onSelectSlot={handleSelectSlot as any} // Type assertion needed for the onSelectSlot prop
+        selectable
         components={{
-          event: EventComponent,
+          event: EventComponent as any, // Type assertion needed for the event component
           toolbar: CustomToolbar,
         }}
-        eventPropGetter={(event) => ({
-          className: cn(
-            'overflow-hidden',
-            event.isPast ? 'opacity-70' : 'opacity-100',
-            {
-              'border-l-4 border-red-500': event.performanceType === 'single',
-              'border-l-4 border-green-500': event.performanceType === 'group',
-            }
-          ),
-        })}
+        className={className}
         dayPropGetter={(date) => ({
           className: isDateToday(date) ? 'bg-blue-50' : '',
         })}
@@ -372,17 +382,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         }}
       />
 
-      {selectedEvent && (
+{selectedEvent && (
         <EventDetailsModal
-          event={selectedEvent}
-          isOpen={!!selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          onEdit={() => {
-            if (selectedEvent.id) {
-              router.push(`/payment/success/events/${selectedEvent.id}/edit`);
-            }
-            setSelectedEvent(null);
-          }}
+          event={selectedEvent as ApiEvent}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </div>

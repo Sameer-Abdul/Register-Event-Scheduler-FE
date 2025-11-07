@@ -1,3 +1,5 @@
+export type PerformanceType = 'single' | 'group';
+
 export interface Event {
   id: number;
   name: string;
@@ -11,7 +13,7 @@ export interface Event {
   organization_name?: string;
   organization_contact?: string;
   organization_email?: string;
-  performance_type?: string;
+  performance_type?: PerformanceType;
   event_coordinator?: string;
   created_by: number;
   created_at: string;
