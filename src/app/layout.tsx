@@ -23,24 +23,31 @@ export default function RootLayout({
         <SessionProvider>
           <AuthProvider>
             <div className="min-h-full">
-              <nav className="bg-white shadow-sm py-3">
-                <div className="max-w-6xl mx-auto px-4">
+              <nav className="bg-white shadow-sm py-2">
+                <div className="w-full max-w-6xl mx-auto px-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <img src="/apj.png" alt="APJ" className="h-20 w-auto object-contain" />
-                      <div className="h-16 w-px bg-gray-300"></div>
-                      <img src="/globe.jpeg" alt="Globe" className="h-20 w-auto object-contain" />
-                    </div>
-                    <div className="text-center">
-                      <h1 className="text-xl font-bold text-blue-800 leading-tight">LEAD INDIA FOUNDATION</h1>
-                      <div className="flex items-center justify-center space-x-2 mt-1">
-                        <img src="/trsma.jpeg" alt="TRSMA" className="h-8 w-auto object-contain" />
-                        <h2 className="text-lg font-semibold text-gray-900">TRSMA</h2>
-                      </div>
-                      <h3 className="text-sm font-medium text-blue-800 leading-tight">PRESENT KALAM&apos;S BEST TEACHER AWARD</h3>
-                    </div>
+                    {/* Left side image */}
                     <div className="flex items-center">
-                      <img src="/kalam.jpg" alt="Kalam" className="h-24 w-auto object-contain" />
+                      <img src="/kalam.jpg" alt="APJ" className="h-20 w-auto object-contain" />
+                    </div>
+                    
+                    {/* Center heading with images */}
+                    <div className="flex-1 px-4">
+                      <div className="flex items-center justify-center space-x-6">
+                        <img src="/globe.jpeg" alt="Globe" className="h-20 w-auto object-contain" />
+                        <div className="text-center space-y-0.5">
+                          <h1 className="text-xl md:text-2xl font-bold text-orange-600 leading-tight">LEAD INDIA FOUNDATION</h1>
+                          <h2 className="text-lg md:text-xl font-bold text-red-900">&</h2> 
+                          <h2 className="text-lg md:text-xl font-bold text-pink-800">TRSMA</h2>
+                          <h3 className="text-xs md:text-sm font-bold text-green-700 leading-tight">PRESENT KALAM&apos;S BEST TEACHER AWARD</h3>
+                        </div>
+                        <img src="/trsma.jpeg" alt="TRSMA" className="h-20 w-auto object-contain" />
+                      </div>
+                    </div>
+                    
+                    {/* Right side image */}
+                    <div className="flex items-center">
+                      <img src="/apj.png" alt="Kalam" className="h-24 w-auto object-contain" />
                     </div>
                   </div>
                 </div>

@@ -234,107 +234,74 @@ export default function CalendarPage() {
           const parseDateTime = (dateStr: string, timeStr?: string) => {
             if (!dateStr) return new Date();
             
-            // Create a date string in local timezone
+            // If dateStr is already a full ISO string with time, use it directly
+            if (dateStr.includes('T')) {
+              return new Date(dateStr);
+            }
+            
+            // Otherwise, combine date and time parts
             const datePart = dateStr.split('T')[0];
             const timePart = timeStr ? timeStr.split('.')[0] : '00:00:00';
+            
+            // Create a date string in local timezone
             const dateTimeStr = `${datePart}T${timePart}`;
             
-            // Create date object and adjust for timezone
+            // Create date object
             const date = new Date(dateTimeStr);
             
-            // If the timezone offset is causing the date to shift, adjust it
-            const timezoneOffset = date.getTimezoneOffset() * 60000;
-            return new Date(date.getTime() + timezoneOffset);
+            // If the date is invalid, return current date as fallback
+            if (isNaN(date.getTime())) {
+              console.warn(`Invalid date: ${dateTimeStr}`);
+              return new Date();
+            }
+            
+            return date;
           };
           
           // Parse start and end times
-          let startDateTime = parseDateTime(event.date, event.start_time);
-          let endDateTime = event.end_time ? parseDateTime(event.date, event.end_time) : undefined;
+          const startDate = parseDateTime(event.date, event.start_time);
+          let endDate = event.end_time ? parseDateTime(event.date, event.end_time) : new Date(startDate.getTime() + 3600000); // Default to 1 hour duration if no end time
           
           // If end time is before start time on the same day, adjust to next day
-          if (endDateTime && endDateTime <= startDateTime) {
-            endDateTime = new Date(startDateTime);
-            endDateTime.setDate(endDateTime.getDate() + 1);
+          if (endDate <= startDate) {
+            endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 1);
           }
           
-          // If we have an end time but it's before start, adjust it to next day
-          if (endDateTime && endDateTime <= startDateTime) {
-            endDateTime = new Date(startDateTime);
-            endDateTime.setDate(startDateTime.getDate() + 1);
-          }
-          
-          // Get event type for styling
-          const eventType = event.performance_type?.toLowerCase() || 'default';
-          const colors = {
-            'single': { 
-              bg: 'rgba(139, 92, 246, 0.2)', 
-              border: 'rgba(139, 92, 246, 0.8)',
-              hover: 'hover:bg-purple-100 hover:border-l-purple-600',
-              hoverText: 'hover:text-purple-900',
-              hoverBg: 'rgba(139, 92, 246, 0.3)'
-            },
-            'group': { 
-              bg: 'rgba(59, 130, 246, 0.2)', 
-              border: 'rgba(59, 130, 246, 0.8)',
-              hover: 'hover:bg-blue-100 hover:border-l-blue-600',
-              hoverText: 'hover:text-blue-900',
-              hoverBg: 'rgba(59, 130, 246, 0.3)'
-            },
-            'workshop': { 
-              bg: 'rgba(16, 185, 129, 0.2)', 
-              border: 'rgba(16, 185, 129, 0.8)',
-              hover: 'hover:bg-emerald-100 hover:border-l-emerald-600',
-              hoverText: 'hover:text-emerald-900',
-              hoverBg: 'rgba(16, 185, 129, 0.3)'
-            },
-            'meeting': { 
-              bg: 'rgba(245, 158, 11, 0.2)', 
-              border: 'rgba(245, 158, 11, 0.8)',
-              hover: 'hover:bg-amber-100 hover:border-l-amber-600',
-              hoverText: 'hover:text-amber-900',
-              hoverBg: 'rgba(245, 158, 11, 0.3)'
-            },
-            'conference': { 
-              bg: 'rgba(244, 63, 94, 0.2)', 
-              border: 'rgba(244, 63, 94, 0.8)',
-              hover: 'hover:bg-rose-100 hover:border-l-rose-600',
-              hoverText: 'hover:text-rose-900',
-              hoverBg: 'rgba(244, 63, 94, 0.3)'
-            },
-            'default': { 
-              bg: 'rgba(156, 163, 175, 0.2)', 
-              border: 'rgba(156, 163, 175, 0.8)',
-              hover: 'hover:bg-gray-100 hover:border-l-gray-600',
-              hoverText: 'hover:text-gray-900',
-              hoverBg: 'rgba(156, 163, 175, 0.3)'
-            }
+          // Format the event title to include time and venue
+          const formatTime = (date: Date) => {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           };
           
-          const colorSet = colors[eventType as keyof typeof colors] || colors['default'];
+          const title = `${event.name}\n${formatTime(startDate)} - ${formatTime(endDate)}${event.venue ? `\n${event.venue}` : ''}`;
+          
+          // Determine event type for styling
+          const eventType = event.performance_type?.toLowerCase() || 'default';
+          const eventColors = getEventColor(eventType);
           
           return {
-            id: event.id?.toString() || Math.random().toString(36).substr(2, 9),
-            title: event.name || 'Untitled Event',
-            start: startDateTime,
-            end: endDateTime,
+            id: event.id.toString(),
+            title: title,
+            start: startDate,
+            end: endDate,
             allDay: false,
             extendedProps: {
-              venue: event.venue || 'No venue',
+              venue: event.venue || 'No venue specified',
               organization: event.organization_name || 'No organization',
-              organization_contact: event.organization_contact || '',
-              organization_email: event.organization_email || '',
+              organization_contact: event.organization_contact,
+              organization_email: event.organization_email,
               coordinator: event.event_coordinator || 'No coordinator',
-              performance_type: event.performance_type || 'default',
-              mode_of_event: event.mode_of_event || 'in-person',
-              participants: Array.isArray(event.participants) ? event.participants : []
+              performance_type: event.performance_type || 'Not specified',
+              mode_of_event: event.mode_of_event || 'Not specified',
+              participants: event.participants || []
             },
-            backgroundColor: colorSet.bg,
-            borderColor: colorSet.border,
+            className: `${eventType}-event`,
+            backgroundColor: eventColors,
+            borderColor: getEventColor(eventType, true),
             textColor: '#1f2937', // dark gray text
-            className: `shadow-sm hover:shadow-md transition-all duration-200 rounded-md border-l-4 ${eventType}-event font-medium`,
             style: {
-              '--hover-bg-color': colorSet.hoverBg,
-              '--bg-color': colorSet.bg
+              '--hover-bg-color': getEventColor(eventType, false),
+              '--bg-color': eventColors
             } as React.CSSProperties,
             display: 'block',
             editable: true,
@@ -343,7 +310,7 @@ export default function CalendarPage() {
           };
         });
         
-        console.log('Formatted events:', formattedEvents);
+        console.log('Formatted events:', JSON.stringify(formattedEvents, null, 2));
         setEvents(formattedEvents);
       } catch (error) {
         console.error('Error fetching events:', error);
