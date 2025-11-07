@@ -8,9 +8,40 @@ import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Event } from '@/types/event';
-import * as yup from 'yup';
 import axios from 'axios';
+import * as yup from 'yup';
+
+// Define the Event interface with all required properties
+interface Event {
+  id: string;
+  name: string;
+  description: string;
+  start: Date | string;
+  end: Date | string;
+  organizationPOC: string;
+  pocMobile: string;
+  pocEmail: string;
+  alternateNumber?: string;
+  venue: string;
+  organizationName: string;
+  latitude?: number;
+  longitude?: number;
+  eventCoordinator: string;
+  comments?: string;
+  performanceType: 'single' | 'group';
+  participants: Array<{
+    name: string;
+    age: number;
+    phone: string;
+    email?: string;
+    address: string;
+    gender: string;
+    comments?: string;
+    mandatoryPrerequisite?: string;
+    latitude?: number;
+    longitude?: number;
+  }>;
+}
 
 // Define the event data types
 interface RegistrationData {
@@ -62,24 +93,44 @@ const eventValidationSchema = yup.object().shape({
   comments: yup.string(),
   performanceType: yup.string().oneOf(['single', 'group']).required('Performance type is required'),
   participants: yup.array().when('performanceType', {
-    is: 'single',
-    then: yup.array().min(1, 'At least one participant is required')
+    is: (val: string) => val === 'single',
+    then: (schema: yup.ArraySchema<any, any, any>) => schema.min(1, 'At least one participant is required')
   })
 });
 
-// Dynamically import modules for code-splitting
-const CalendarView = dynamic(
-  () => import('@/components/events/CalendarView'),
+// Define component props interfaces
+interface CalendarViewProps {
+  events: Event[];
+  onEventClick: (event: Event) => void;
+}
+
+interface CreateEventFormProps {
+  event?: Event;
+  onSubmit: (eventData: Partial<Event>) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
+interface EventsListProps {
+  events: Event[];
+  onEdit: (event: Event) => void;
+  onDelete: (eventId: string) => Promise<void>;
+  onView: (event: Event) => void;
+}
+
+// Dynamically import modules for code-splitting with proper typing
+const CalendarView = dynamic<CalendarViewProps>(
+  () => import('@/components/events/CalendarView').then(mod => mod.CalendarView),
   { loading: () => <Skeleton className="h-[600px] w-full" />, ssr: false }
 );
 
-const CreateEventForm = dynamic(
-  () => import('@/components/events/CreateEventForm'),
+const CreateEventForm = dynamic<CreateEventFormProps>(
+  () => import('@/components/events/CreateEventForm').then(mod => mod.default),
   { loading: () => <Skeleton className="h-[600px] w-full" />, ssr: false }
 );
 
-const EventsList = dynamic(
-  () => import('@/components/events/EventsList'),
+const EventsList = dynamic<EventsListProps>(
+  () => import('@/components/events/EventsList').then(mod => mod.default),
   { loading: () => <Skeleton className="h-[600px] w-full" />, ssr: false }
 );
 
