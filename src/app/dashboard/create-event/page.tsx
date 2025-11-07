@@ -18,9 +18,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
+const PERFORMANCE_TYPES = ['single', 'group'] as const;
+type PerformanceType = (typeof PERFORMANCE_TYPES)[number];
+
+const performanceTypeSchema = z.enum(PERFORMANCE_TYPES, {
+  errorMap: () => ({ message: 'Please select a performance type' })
+});
+
 const participantSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  age: z.coerce.number().min(1, 'Age is required').max(120, 'Invalid age'),
+  age: z.number().min(1, 'Age is required'),
   phone: z.string().min(10, 'Phone number is required'),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   address: z.string().min(1, 'Address is required'),
@@ -33,9 +40,7 @@ const participantSchema = z.object({
 
 const formSchema = z.object({
   eventName: z.string().min(1, 'Event name is required'),
-  eventDate: z.date({
-    required_error: 'Event date is required',
-  }),
+  eventDate: z.date().min(new Date(), 'Event date must be in the future'),
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   pocName: z.string().min(1, 'POC name is required'),
@@ -48,9 +53,7 @@ const formSchema = z.object({
   longitude: z.string().optional(),
   eventCoordinator: z.string().min(1, 'Event coordinator is required'),
   comments: z.string().optional(),
-  performanceType: z.enum(['single', 'group'], {
-    required_error: 'Please select a performance type',
-  }),
+  performanceType: performanceTypeSchema,
   participants: z.array(participantSchema).min(1, 'At least one participant is required'),
 });
 
@@ -60,9 +63,25 @@ export default function CreateEventPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
+      eventName: '',
+      eventDate: new Date(),
+      startTime: '',
+      endTime: '',
+      pocName: '',
+      pocMobile: '',
+      pocEmail: '',
+      pocAlternateNumber: '',
+      venue: '',
+      organizationName: '',
+      latitude: '',
+      longitude: '',
+      eventCoordinator: '',
+      comments: '',
+      performanceType: 'single',
       participants: [{
         name: '',
         age: 0,
@@ -71,9 +90,9 @@ export default function CreateEventPage() {
         address: '',
         gender: '',
         comments: '',
-        mandatoryPrerequisite: '',
-      }],
-    },
+        mandatoryPrerequisite: ''
+      }]
+    }
   });
 
   const performanceType = form.watch('performanceType');
