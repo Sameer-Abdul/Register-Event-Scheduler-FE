@@ -4,15 +4,12 @@ import { authOptions } from '@/lib/auth';
 import { getEventParticipants as getEventRegistrations, registerParticipant } from '@/lib/eventDb';
 import { EventRegistration, Participant } from '@/types/event';
 
-type RouteParams = {
-  params: { eventId: string };
-};
-
 // GET /api/events/[eventId]/registrations - Get all registrations for an event
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
-) {
+  context: { params: Promise<{ eventId: string }> }
+): Promise<Response> {
+  const { eventId } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -22,15 +19,15 @@ export async function GET(
       );
     }
 
-    const eventId = parseInt(params.eventId);
-    if (isNaN(eventId)) {
+    const eventIdNum = parseInt(eventId);
+    if (isNaN(eventIdNum)) {
       return NextResponse.json(
         { success: false, error: 'Invalid event ID' },
         { status: 400 }
       );
     }
 
-    const registrations = await getEventRegistrations(eventId);
+    const registrations = await getEventRegistrations(eventIdNum);
     return NextResponse.json({ success: true, data: registrations });
   } catch (error) {
     console.error('Error fetching event registrations:', error);
@@ -44,8 +41,9 @@ export async function GET(
 // POST /api/events/[eventId]/registrations - Register for an event
 export async function POST(
   request: NextRequest,
-  { params }: RouteParams
-) {
+  context: { params: Promise<{ eventId: string }> }
+): Promise<Response> {
+  const { eventId } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -55,8 +53,8 @@ export async function POST(
       );
     }
 
-    const eventId = parseInt(params.eventId);
-    if (isNaN(eventId)) {
+    const eventIdNum = parseInt(eventId);
+    if (isNaN(eventIdNum)) {
       return NextResponse.json(
         { success: false, error: 'Invalid event ID' },
         { status: 400 }
@@ -81,18 +79,20 @@ export async function POST(
     }
 
     // Register the participant with required fields
-    const registration = await registerParticipant({
+    const registrationData = {
       name: participantData.name,
       email: participantData.email,
       phone_no: requestData.phone || '', // Default empty string if not provided
       address: requestData.address || '', // Default empty string if not provided
       gender: requestData.gender || 'other', // Default to 'other' if not provided
-      event_id: eventId,
+      event_id: eventIdNum, // Use the parsed number
       age: requestData.age ? parseInt(requestData.age) : 0, // Default to 0 if not provided
-      latitude: requestData.latitude?.toString() || null,
-      longitude: requestData.longitude?.toString() || null,
+      latitude: requestData.latitude ? String(requestData.latitude) : undefined,
+      longitude: requestData.longitude ? String(requestData.longitude) : undefined,
       prerequisites_completed: requestData.mandatoryPrerequisite || false
-    });
+    };
+
+    const registration = await registerParticipant(registrationData);
 
     return NextResponse.json(
       { success: true, data: registration },
