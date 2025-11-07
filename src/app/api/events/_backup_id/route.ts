@@ -33,7 +33,25 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const eventIndex = db.events.findIndex(e => e.id === params.id);
+    // Ensure we have a valid ID parameter
+    if (!params.id) {
+      return NextResponse.json(
+        { message: 'Event ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Convert ID to number and validate
+    const eventId = parseInt(params.id, 10);
+    if (isNaN(eventId)) {
+      return NextResponse.json(
+        { message: 'Invalid event ID format' },
+        { status: 400 }
+      );
+    }
+    
+    // Find the event by ID
+    const eventIndex = db.events.findIndex(e => e.id === eventId);
     
     if (eventIndex === -1) {
       return NextResponse.json(
@@ -47,7 +65,7 @@ export async function PUT(
     const updatedEvent: Event = {
       ...db.events[eventIndex],
       ...updates,
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     
     db.events[eventIndex] = updatedEvent;
@@ -68,7 +86,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const eventIndex = db.events.findIndex(e => e.id === params.id);
+    // Ensure we have a valid ID parameter
+    if (!params.id) {
+      return NextResponse.json(
+        { message: 'Event ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Convert ID to number and validate
+    const eventId = parseInt(params.id, 10);
+    if (isNaN(eventId)) {
+      return NextResponse.json(
+        { message: 'Invalid event ID format' },
+        { status: 400 }
+      );
+    }
+    
+    // Find the event by ID
+    const eventIndex = db.events.findIndex(e => e.id === eventId);
     
     if (eventIndex === -1) {
       return NextResponse.json(
