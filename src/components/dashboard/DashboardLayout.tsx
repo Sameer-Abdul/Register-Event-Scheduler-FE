@@ -87,7 +87,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex md:flex-shrink-0">
+      <div className="hidden md:flex md:shrink-0">
         <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
@@ -138,7 +138,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             {user && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Avatar className="h-9 w-9">
+                  <Avatar alt={user.name} className="h-9 w-9">
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
                     <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                   </Avatar>
@@ -232,7 +232,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <div className="absolute bottom-16 left-0 right-0 bg-white rounded-t-lg shadow-lg p-4" onClick={(e) => e.stopPropagation()}>
             {user && (
               <div className="flex items-center space-x-3 mb-4 pb-4 border-b">
-                <Avatar className="h-10 w-10">
+                <Avatar alt={user.name} className="h-10 w-10">
                   <AvatarImage src={user.avatarUrl} alt={user.name} />
                   <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
