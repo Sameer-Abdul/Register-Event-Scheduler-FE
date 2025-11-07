@@ -180,40 +180,37 @@ export default function RegisterPage() {
           <div className="px-4 py-5 sm:px-6">
             <h1 className="text-2xl font-bold text-gray-900">Registration Form</h1>
           </div>
-          <form onSubmit={formik.handleSubmit} className="px-4 py-5 sm:p-6">
-            <div className="space-y-6">
-        <div className="mb-8">
-          <div className="relative mb-4">
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 -translate-y-1/2 bg-gray-200"></div>
-            <div 
-              className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-primary transition-all duration-300"
-              style={{
-                width: `${((currentStep - 1) / 3) * 100}%`,
-                maxWidth: '100%',
-              }}
-            ></div>
-          </div>
-          <div className="flex justify-between">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex flex-col items-center">
+          <form id="registration-form" onSubmit={formik.handleSubmit} className="px-4 py-5 sm:p-6 space-y-6">
+            <div className="mb-8">
+              <div className="relative mb-4">
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 -translate-y-1/2 bg-gray-200"></div>
                 <div 
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    currentStep >= step 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {step}
-                </div>
-                <span className="mt-2 text-xs text-gray-600">
-                  {["Personal", "Professional", "School", "Payment"][step - 1]}
-                </span>
+                  className="absolute top-1/2 left-0 h-0.5 -translate-y-1/2 bg-primary transition-all duration-300"
+                  style={{
+                    width: `${((currentStep - 1) / 3) * 100}%`,
+                    maxWidth: '100%',
+                  }}
+                ></div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <form onSubmit={formik.handleSubmit} className="space-y-6">
+              <div className="flex justify-between">
+                {[1, 2, 3, 4].map((step) => (
+                  <div key={step} className="flex flex-col items-center">
+                    <div 
+                      className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                        currentStep >= step 
+                          ? 'bg-primary text-white' 
+                          : 'bg-gray-200 text-gray-600'
+                      }`}
+                    >
+                      {step}
+                    </div>
+                    <span className="mt-2 text-xs text-gray-600">
+                      {["Personal", "Professional", "School", "Payment"][step - 1]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -282,8 +279,22 @@ export default function RegisterPage() {
                     name="email"
                     type="email"
                     placeholder="Enter your email"
-                  </div>
-                ))}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.email}
+                    className={formik.touched.email && formik.errors.email ? 'border-red-300' : ''}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maritalStatus">Marital Status *</Label>
+                  <Select
+                    value={formik.values.maritalStatus}
+                    onValueChange={(value) => formik.setFieldValue('maritalStatus', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select marital status" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Single">Single</SelectItem>
                       <SelectItem value="Married">Married</SelectItem>
@@ -595,32 +606,47 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
+          <div className="flex justify-between pt-6 border-t border-gray-200">
+            {currentStep > 1 ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+                disabled={formik.isSubmitting || isSubmitting}
+              >
+                Previous
+              </Button>
+            ) : (
+              <div></div>
+            )}
+            
+            {currentStep < 4 ? (
+              <Button
+                type="button"
+                onClick={nextStep}
+                disabled={formik.isSubmitting || isSubmitting}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={formik.isSubmitting || isSubmitting}
+              >
+                {formik.isSubmitting || isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Application'
+                )}
+              </Button>
+            )}
+          </div>
         </form>
-        <div className="px-4 py-3 bg-gray-50 text-right sm:px-6">
-          {currentStep > 1 && (
-            <button
-              type="button"
-              onClick={prevStep}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 mr-3"
-            >
-              Previous
-            </button>
-          )}
-          
-          <button
-            type="submit"
-            disabled={formik.isSubmitting || isSubmitting}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {formik.isSubmitting || isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                Processing...
-              </>
-            ) : 'Submit'}
-          </button>
-        </div>
       </div>
     </div>
+  </div>
   );
 }
