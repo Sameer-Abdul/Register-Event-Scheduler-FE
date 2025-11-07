@@ -7,9 +7,9 @@ import { Event, Participant } from '@/types/event';
 // GET /api/events/[eventId]/participants/[participantId] - Get a specific participant
 export async function GET(
   request: NextRequest,
-  context: { params: { eventId: string; participantId: string } }
+  context: { params: Promise<{ eventId: string; participantId: string }> }
 ) {
-  const { eventId, participantId } = context.params;
+  const { eventId, participantId } = await context.params;
   try {
     
     // Fetch participants for the event
@@ -36,9 +36,9 @@ export async function GET(
 // PUT /api/events/[eventId]/participants/[participantId] - Update a participant
 export async function PUT(
   request: NextRequest,
-  context: { params: { eventId: string; participantId: string } }
+  context: { params: Promise<{ eventId: string; participantId: string }> }
 ) {
-  const { eventId, participantId } = context.params;
+  const { eventId, participantId } = await context.params;
   try {
     
     // Get the participant
@@ -76,9 +76,9 @@ export async function PUT(
 // DELETE /api/events/[eventId]/participants/[participantId] - Delete a participant
 export async function DELETE(
   request: NextRequest,
-  context: { params: { eventId: string; participantId: string } }
+  context: { params: Promise<{ eventId: string; participantId: string }> }
 ) {
-  const { eventId, participantId } = context.params;
+  const { eventId, participantId } = await context.params;
   try {
     
     // Check if participant exists

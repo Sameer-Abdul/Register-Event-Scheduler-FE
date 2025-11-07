@@ -63,8 +63,11 @@ export async function POST(request: Request) {
   }
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const config = {
   api: {
-    bodyParser: false, // Disable the default body parser
+    bodyParser: false,  // Disable the default body parser
   },
 };
