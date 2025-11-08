@@ -44,7 +44,7 @@ export default function EventsList() {
 
   // Delete event mutation
   const deleteEvent = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string | number) => {
       const response = await fetch(`/api/events/${id}`, {
         method: 'DELETE',
       });
@@ -84,20 +84,26 @@ export default function EventsList() {
     .filter((event) =>
       event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.venue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.organizationName.toLowerCase().includes(searchTerm.toLowerCase())
+      (event.organization_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (!sortConfig) return 0;
+      
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
+      // Handle undefined/null values
       if (aValue === bValue) return 0;
+      if (aValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (bValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
       
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+      // Convert to string for comparison to handle different types
+      const aString = String(aValue);
+      const bString = String(bValue);
+      
+      return sortConfig.direction === 'asc' 
+        ? aString.localeCompare(bString)
+        : bString.localeCompare(aString);
     });
 
   if (isLoading) {
@@ -165,16 +171,16 @@ export default function EventsList() {
                   <TableCell className="font-medium">{event.name}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{format(new Date(event.start), 'MMM d, yyyy')}</span>
+                      <span>{format(new Date(event.date), 'MMM d, yyyy')}</span>
                       <span className="text-sm text-muted-foreground">
-                        {format(new Date(event.start), 'h:mm a')} - {format(new Date(event.end), 'h:mm a')}
+                        {event.start_time} - {event.end_time}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>{event.venue}</TableCell>
-                  <TableCell>{event.organizationName}</TableCell>
+                  <TableCell>{event.organization_name || 'N/A'}</TableCell>
                   <TableCell>
-                    {event.participants.length} {event.participants.length === 1 ? 'Participant' : 'Participants'}
+                    {event.participants?.length || 0} {(!event.participants || event.participants.length === 1) ? 'Participant' : 'Participants'}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
