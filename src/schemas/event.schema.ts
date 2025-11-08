@@ -62,10 +62,9 @@ export const eventFormSchema = yup.object().shape({
     .required('Performance type is required'),
   participants: yup.array()
     .of(participantSchema)
-    .when('performanceType', (performanceType: PerformanceType, schema) => {
-      return performanceType === 'single' 
-        ? schema.min(1, 'At least one participant is required')
-        : schema;
+    .when('performanceType', {
+      is: (performanceType: PerformanceType) => performanceType === 'single',
+      then: (schema) => schema.min(1, 'At least one participant is required')
     })
 });
 

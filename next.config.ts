@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
+// Configuration for both Webpack and Turbopack
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Add empty turbopack config to satisfy Next.js 16+
+  turbopack: {},
+  // Only apply webpack config when not using Turbopack
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@/backend': false
+      };
+    }
+    return config;
+  },
   images: {
     remotePatterns: [
       {
