@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormik } from 'formik';
+import { useFormik, FormikErrors } from 'formik';
 import * as Yup from 'yup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -253,9 +253,15 @@ export default function CreateEventForm() {
                     placeholder="John Doe"
                   />
                   {formik.touched.participants?.[index]?.name &&
-                    formik.errors.participants?.[index]?.name && (
+                    typeof formik.errors.participants?.[index] === 'object' &&
+                    formik.errors.participants?.[index] !== null &&
+                    'name' in formik.errors.participants[index]! && (
                       <p className="text-sm text-red-500">
-                        {formik.errors.participants[index]?.name}
+                        {
+                          (formik.errors.participants[index] as FormikErrors<{
+                            name: string;
+                          }>).name
+                        }
                       </p>
                     )}
                 </div>
