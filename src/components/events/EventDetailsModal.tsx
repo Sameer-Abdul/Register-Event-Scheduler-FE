@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import { Event } from '@/types/event';
+import { Event, Participant } from '@/types/event';
 
 interface EventDetailsModalProps {
   event: Event | null;
@@ -63,7 +63,13 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                             <div className="sm:col-span-2">
                               <dt className="text-sm text-gray-500">Date & Time</dt>
                               <dd className="mt-1 text-sm text-gray-900">
-                                {format(new Date(event.start), 'PPP')} • {format(new Date(event.start), 'h:mm a')} - {format(new Date(event.end), 'h:mm a')}
+                                {event.date && event.start_time && event.end_time && (
+                                  <>
+                                    {format(new Date(`${event.date}T${event.start_time}`), 'PPP')} •{" "}
+                                    {format(new Date(`${event.date}T${event.start_time}`), 'h:mm a')} -{" "}
+                                    {format(new Date(`${event.date}T${event.end_time}`), 'h:mm a')}
+                                  </>
+                                )}
                               </dd>
                             </div>
                             <div>
@@ -72,32 +78,20 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                             </div>
                             <div>
                               <dt className="text-sm text-gray-500">Organization</dt>
-                              <dd className="mt-1 text-sm text-gray-900">{event.organizationName}</dd>
+                              <dd className="mt-1 text-sm text-gray-900">{event.organization_name || 'N/A'}</dd>
                             </div>
                             <div>
                               <dt className="text-sm text-gray-500">Point of Contact</dt>
-                              <dd className="mt-1 text-sm text-gray-900">{event.organizationPOC}</dd>
+                              <dd className="mt-1 text-sm text-gray-900">{event.organization_contact || 'N/A'}</dd>
                             </div>
                             <div>
                               <dt className="text-sm text-gray-500">Contact Number</dt>
-                              <dd className="mt-1 text-sm text-gray-900">{event.pocMobile}</dd>
+                              <dd className="mt-1 text-sm text-gray-900">{event.organization_contact || 'N/A'}</dd>
                             </div>
                             <div>
                               <dt className="text-sm text-gray-500">Email</dt>
-                              <dd className="mt-1 text-sm text-gray-900">{event.pocEmail}</dd>
+                              <dd className="mt-1 text-sm text-gray-900">{event.organization_email || 'N/A'}</dd>
                             </div>
-                            {event.alternateNumber && (
-                              <div>
-                                <dt className="text-sm text-gray-500">Alternate Number</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{event.alternateNumber}</dd>
-                              </div>
-                            )}
-                            {event.comments && (
-                              <div className="sm:col-span-2">
-                                <dt className="text-sm text-gray-500">Additional Comments</dt>
-                                <dd className="mt-1 text-sm text-gray-900">{event.comments}</dd>
-                              </div>
-                            )}
                           </dl>
                         </div>
 
@@ -119,20 +113,28 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                                 </tr>
                               </thead>
                               <tbody className="bg-white divide-y divide-gray-200">
-                                {event.participants.map((participant, index) => (
-                                  <tr key={index}>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                      {participant.name}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                      {participant.phone}<br />
-                                      {participant.email}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                      {participant.mandatoryPrerequisite ? 'Yes' : 'No'}
+                                {event.participants?.length ? (
+                                  event.participants.map((participant, index) => (
+                                    <tr key={index}>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {participant.name}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {participant.phone_no}<br />
+                                        {participant.email}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {participant.prerequisites_completed ? 'Yes' : 'No'}
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td colSpan={3} className="px-4 py-3 text-sm text-center text-gray-500">
+                                      No participants registered yet
                                     </td>
                                   </tr>
-                                ))}
+                                )}
                               </tbody>
                             </table>
                           </div>

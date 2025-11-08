@@ -22,6 +22,7 @@ export interface Event {
   zoom_join_url?: string;
   zoom_host_url?: string;
   zoom_password?: string;
+  participants?: Participant[];
 }
 
 export interface Participant {
