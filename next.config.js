@@ -6,13 +6,6 @@ const nextConfig = {
       bodySizeLimit: '50mb',
     },
   },
-  
-  // Configure API routes
-  api: {
-    bodyParser: false, // Disable default body parser to handle file uploads
-    responseLimit: '50mb',
-    externalResolver: true,
-  },
 
   // External packages for server components
   serverExternalPackages: ['@prisma/client'],
