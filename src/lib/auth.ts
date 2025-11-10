@@ -360,36 +360,12 @@ export const authOptions: NextAuthOptions = {
                 console.log('Password verification failed using salt:hash method');
               }
             } else if (storedPassword?.startsWith('$2')) {
-              // Handle bcrypt hashes if they exist
-              const bcrypt = require('bcrypt');
-              
-              // Try with raw password first
-              console.log('Attempting bcrypt comparison with raw password');
-              const startTime = Date.now();
-              isValid = await bcrypt.compare(passwordToCheck, storedPassword);
-              console.log(`Bcrypt comparison result: ${isValid} (took ${Date.now() - startTime}ms)`);
-              
-              // If not valid, try with trimmed password
-              if (!isValid) {
-                const trimmedPassword = passwordToCheck.trim();
-                if (trimmedPassword !== passwordToCheck) {
-                  console.log('Trying with trimmed password');
-                  const startTime = Date.now();
-                  isValid = await bcrypt.compare(trimmedPassword, storedPassword);
-                  console.log(`Bcrypt comparison with trimmed password: ${isValid} (took ${Date.now() - startTime}ms)`);
-                }
-              }
-              
-              // If still not valid, try with trimmed hash
-              if (!isValid) {
-                const trimmedHash = storedPassword.trim();
-                if (trimmedHash !== storedPassword) {
-                  console.log('Trying with trimmed hash');
-                  const startTime = Date.now();
-                  isValid = await bcrypt.compare(passwordToCheck, trimmedHash);
-                  console.log(`Bcrypt comparison with trimmed hash: ${isValid} (took ${Date.now() - startTime}ms)`);
-                }
-              }
+              // For bcrypt hashes, we'll need to update them to the new format
+              console.log('Found bcrypt hash, please update to the new hash format');
+              console.log('To update, run the following SQL:');
+              console.log(`UPDATE register SET password_hash = 'new_salt:new_hash' WHERE email = '${user.email}';`);
+              console.log('Use the generate-hash.mjs script to generate the new hash.');
+              return null;
             } else if (process.env.NODE_ENV !== 'production' && storedPassword === passwordToCheck) {
               // Direct comparison (for development only)
               console.log('Password matched via direct comparison');

@@ -8,6 +8,7 @@ import { Assignment } from '@/lib/assignmentDb';
 interface AssignmentWithUser extends Assignment {
   user_name: string;
   user_email: string;
+  rating?: number | null;
 }
 
 export default function AdminDashboard() {

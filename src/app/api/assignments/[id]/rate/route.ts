@@ -3,10 +3,13 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   try {
     // Get user session
     const session = await getServerSession(authOptions);
@@ -33,7 +36,7 @@ export async function POST(
     // Update the assignment with the rating
     const result = await query(
       'UPDATE assignments SET rating = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [rating, params.id]
+      [rating, id]
     );
 
     if (result.rows.length === 0) {

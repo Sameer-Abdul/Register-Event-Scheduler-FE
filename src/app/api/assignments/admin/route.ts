@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Get user session
@@ -39,5 +41,3 @@ export async function GET() {
     );
   }
 }
-
-export const dynamic = 'force-dynamic';

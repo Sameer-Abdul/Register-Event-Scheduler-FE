@@ -3,10 +3,14 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { query } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   try {
     // Get user session
     const session = await getServerSession(authOptions);
@@ -19,7 +23,7 @@ export async function GET(
     // Fetch the assignment
     const result = await query(
       'SELECT file_name, file_data, file_type FROM assignments WHERE id = $1',
-      [params.id]
+      [id]
     );
 
     if (result.rows.length === 0) {
