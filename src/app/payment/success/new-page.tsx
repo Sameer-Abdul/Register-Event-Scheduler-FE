@@ -92,8 +92,14 @@ interface EventsListProps {
 
 // Dynamically import modules for code-splitting with proper typing
 const CalendarView = dynamic<CalendarViewProps>(
-  () => import('@/components/events/CalendarView').then(mod => mod.default),
-  { loading: () => <Skeleton className="h-[600px] w-full" />, ssr: false }
+  () =>
+    import('@/components/events/CalendarView').then(
+      (mod) => mod.default as React.ComponentType<CalendarViewProps>
+    ),
+  {
+    loading: () => <Skeleton className="h-[600px] w-full" />,
+    ssr: false,
+  }
 );
 
 const CreateEventForm = dynamic<CreateEventFormProps>(
