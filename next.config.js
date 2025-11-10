@@ -2,9 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
+
   experimental: {
-    serverActions: true,
+    // must be an object for Next 16 — passing true triggers warnings
+    serverActions: {},
   },
+
   async redirects() {
     return [];
   },
