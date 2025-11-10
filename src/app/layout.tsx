@@ -4,7 +4,16 @@ import { SessionProvider } from 'next-auth/react';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import './globals.css';
+
+// Disable SSR for the entire app to avoid hydration issues
+// This is a workaround for Next.js 13+ with NextAuth
+if (typeof window !== 'undefined') {
+  // Client-side only code
+  console.log('Running in browser environment');
+}
 
 const inter = Inter({
   subsets: ['latin'],

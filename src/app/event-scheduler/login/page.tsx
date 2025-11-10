@@ -1,96 +1,226 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
+
+// Utility function to clear all auth-related cookies
+const clearAuthCookies = () => {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name] = cookie.trim().split('=');
+    if (name.includes('next-auth') || name.includes('session-token')) {
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      document.cookie = `${name}=; path=/; domain=.${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    }
+  }
+  // Clear session storage and local storage as well
+  sessionStorage.clear();
+  localStorage.clear();
+};
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function LoginPage() {
+  // State management
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Hooks
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const { toast } = useToast();
+
+  // Get callback URL or default to dashboard
   const callbackUrl = searchParams.get('callbackUrl') || '/event-scheduler/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Log environment for debugging
+  useEffect(() => {
+    console.log('Login page environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      callbackUrl,
+      sessionStatus: status,
+      hasSession: !!session
+    });
+  }, [status, session, callbackUrl]);
+
+  // Handle authentication state changes
+  useEffect(() => {
+    // Only run this effect in the browser
+    if (typeof window === 'undefined') return;
+
+    console.log('[Login] Auth status changed:', { 
+      status, 
+      isRedirecting,
+      hasSession: !!session,
+      callbackUrl
+    });
+
+    // If already authenticated, redirect to dashboard
+    if (status === 'authenticated' && !isRedirecting) {
+      console.log('[Login] Already authenticated, redirecting to', callbackUrl);
+      setIsRedirecting(true);
+      
+      // Small delay to ensure session is fully established
+      const timer = setTimeout(() => {
+        // Use window.location.href for a full page reload to ensure session is properly set
+        window.location.href = callbackUrl;
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+
+    // Set loading to false once we've checked the auth state
+    if (status !== 'loading' && !isRedirecting) {
+      setIsLoading(false);
+    }
+  }, [status, callbackUrl, isRedirecting, session]);
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+    
+    if (isLoading || isRedirecting) return;
     
     // Basic validation
-    if (!email || !password) {
+    if (!email.trim()) {
+      setError('Email is required');
       toast({
-        title: 'Error',
-        description: 'Please enter both email and password',
+        title: 'Validation Error',
+        description: 'Please enter your email address',
         variant: 'destructive',
       });
       return;
     }
     
-    setIsLoading(true);
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address',
+        variant: 'destructive',
+      });
+      return;
+    }
     
+    if (!password) {
+      setError('Password is required');
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter your password',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    console.log('[Login] Attempting to sign in...');
+
     try {
-      console.log('[Login] Starting login process...');
-      console.log('[Login] Email:', email);
+      // Clear any existing session and cookies first
+      console.log('[Login] Clearing existing session...');
+      try {
+        // First try to sign out using NextAuth
+        await signOut({ redirect: false });
+        
+        // Then clear cookies manually
+        clearAuthCookies();
+        
+        // Add a small delay to ensure session is cleared
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (signOutError) {
+        console.warn('Error during sign out (can be ignored):', signOutError);
+        // Continue with login even if sign out fails
+      }
       
-      // First, clear any existing session
-      await fetch('/api/auth/signout', { method: 'POST' });
+      console.log('[Login] Attempting to sign in with credentials...');
       
       // Sign in with credentials
       const result = await signIn('credentials', {
         redirect: false,
         email: email.trim(),
         password: password,
-        callbackUrl: callbackUrl || '/event-scheduler/dashboard',
+        callbackUrl: callbackUrl,
       });
       
-      console.log('[Login] SignIn response:', result);
+      console.log('[Login] SignIn result:', {
+        error: result?.error || 'No error',
+        url: result?.url ? new URL(result.url).pathname : 'No URL',
+        status: result?.status,
+        ok: result?.ok,
+        errorType: result?.error ? 'Error occurred' : 'No error'
+      });
 
       if (result?.error) {
-        console.error('[Login] SignIn error:', result.error);
+        // Handle specific error cases
         let errorMessage = 'Invalid email or password';
+        let toastTitle = 'Login Failed';
+        
         if (result.error.includes('CredentialsSignin')) {
-          errorMessage = 'Invalid email or password';
+          errorMessage = 'The email or password you entered is incorrect';
+          toastTitle = 'Invalid Credentials';
         } else if (result.error.includes('ECONNREFUSED')) {
-          errorMessage = 'Cannot connect to the authentication server';
+          errorMessage = 'Cannot connect to the authentication server. Please try again later.';
+          toastTitle = 'Connection Error';
+        } else if (result.error.includes('JSON')) {
+          errorMessage = 'An error occurred during authentication. Please try again.';
+          toastTitle = 'Authentication Error';
         }
-        throw new Error(errorMessage);
+        
+        // Set the error state
+        setError(errorMessage);
+        
+        // Show toast with error details
+        toast({
+          title: toastTitle,
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        
+        return; // Don't throw, we're handling it with toast
       }
 
-      // If we have a URL from the result, use it for redirection
+      // If we get here, login was successful
       if (result?.url) {
-        console.log('[Login] Redirecting to:', result.url);
-        // Use replace instead of push to prevent going back to login page
-        window.location.replace(result.url);
+        console.log('[Login] Login successful, redirecting to:', result.url);
+        // Use a full page reload to ensure all auth state is properly set
+        window.location.href = result.url;
         return;
       }
-      
-      // Fallback: Try to verify the session and redirect manually
-      console.log('[Login] No redirect URL, checking session...');
-      const sessionRes = await fetch('/api/auth/session');
-      const session = await sessionRes.json();
-      
-      if (session?.user) {
-        console.log('[Login] Session found, redirecting to dashboard');
-        window.location.replace(callbackUrl || '/event-scheduler/dashboard');
-        return;
-      }
-      
-      // If we get here, something went wrong
-      console.error('[Login] No session after sign in');
-      throw new Error('Login successful but could not establish session. Please try again.');
-      
+
+      // Fallback in case result.url is not provided
+      console.log('[Login] Login successful, falling back to callback URL:', callbackUrl);
+      window.location.href = callbackUrl;
+
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred during login',
-        variant: 'destructive',
-      });
+      const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+      setError(errorMessage);
+      
+      // Only show toast if we didn't already show one
+      if (!error.handled) {
+        toast({
+          title: 'Login Failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -122,10 +252,18 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                  error && error.toLowerCase().includes('email') 
+                    ? 'border-red-500' 
+                    : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 placeholder="Email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // Clear error when user starts typing
+                  if (error) setError(null);
+                }}
               />
             </div>
             <div>
@@ -138,10 +276,18 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                  error && error.toLowerCase().includes('password') 
+                    ? 'border-red-500' 
+                    : 'border-gray-300'
+                } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  // Clear error when user starts typing
+                  if (error) setError(null);
+                }}
               />
             </div>
           </div>
@@ -167,12 +313,25 @@ export default function LoginPage() {
           </div>
 
           <div>
+            {error && (
+              <div className="text-red-500 text-sm mt-1 mb-2">
+                {error}
+              </div>
+            )}
             <Button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </>
+              ) : 'Sign in'}
             </Button>
           </div>
         </form>

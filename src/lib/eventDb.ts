@@ -232,29 +232,37 @@ export async function updateEvent(
     const values = [];
     let paramIndex = 1;
 
+    // Track if we're updating to In-Person mode
+    const isUpdatingToInPerson = eventData.mode_of_event === 'In-Person';
+    let hasUpdates = false;
+    
     // Build dynamic update query for event
     for (const [key, value] of Object.entries(eventData)) {
       // Skip participants as we'll handle them separately
-      if (key !== 'participants' && value !== undefined) {
-        // Handle Zoom meeting fields explicitly
-        if (['zoom_meeting_id', 'zoom_join_url', 'zoom_host_url', 'zoom_password'].includes(key)) {
-          updates.push(`\"${key}\" = $${paramIndex}`);
-          values.push(value || null); // Ensure null is used for empty strings
-        } else {
-          updates.push(`\"${key}\" = $${paramIndex}`);
-          values.push(value);
-        }
-        paramIndex++;
-      }
+      if (key === 'participants' || value === undefined) continue;
+      
+      // Skip zoom fields if we're updating to In-Person mode as we'll handle them separately
+      const isZoomField = ['zoom_meeting_id', 'zoom_join_url', 'zoom_host_url', 'zoom_password'].includes(key);
+      if (isUpdatingToInPerson && isZoomField) continue;
+      
+      // Skip updated_at as we'll handle it separately
+      if (key === 'updated_at') continue;
+      
+      // Handle Zoom meeting fields explicitly
+      updates.push(`\"${key}\" = $${paramIndex}`);
+      values.push(isZoomField ? (value || null) : value);
+      paramIndex++;
+      hasUpdates = true;
     }
   
     // If mode is being updated to 'In-Person', clear Zoom fields
-    if (eventData.mode_of_event === 'In-Person') {
+    if (isUpdatingToInPerson) {
       updates.push('zoom_meeting_id = NULL', 'zoom_join_url = NULL', 'zoom_host_url = NULL', 'zoom_password = NULL');
+      hasUpdates = true;
     }
 
-    if (updates.length > 0) {
-      // Add updated_at timestamp
+    if (hasUpdates) {
+      // Add updated_at timestamp - only once
       updates.push('updated_at = CURRENT_TIMESTAMP');
       
       const queryText = `

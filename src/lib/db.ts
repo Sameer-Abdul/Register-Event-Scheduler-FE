@@ -1,28 +1,66 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 
-// Log environment variables for debugging
+// Log environment variables for debugging (without sensitive data)
 console.log('Environment variables:', {
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  VERCEL: process.env.VERCEL || 'not set',
+  DB_HOST: process.env.DB_HOST ? '***.neon.tech' : 'not set',
+  DB_NAME: process.env.DB_NAME ? '***' : 'not set',
   DB_USERNAME: process.env.DB_USERNAME ? '***' : 'not set',
-  DB_HOST: process.env.DB_HOST || 'not set',
-  DB_NAME: process.env.DB_NAME || 'not set',
   DB_PASSWORD: process.env.DB_PASSWORD ? '***' : 'not set',
-  DB_PORT: process.env.DB_PORT || 'not set',
+  DB_PORT: process.env.DB_PORT || '5432'
 });
 
-// Try to get the password from environment variables or use default
-const dbPassword = process.env.DB_PASSWORD || 'postgres'; // Default password for local development
+const isProduction = process.env.NODE_ENV === 'production';
+const isVercel = process.env.VERCEL === '1';
 
-const pool = new Pool({
-  user: process.env.DB_USERNAME || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'register_payment',
-  password: dbPassword,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  // Add connection timeout to prevent hanging
-  connectionTimeoutMillis: 5000,
-  // Add SSL for production
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// Connection configuration for Neon DB
+const getPoolConfig = () => {
+  // If DATABASE_URL is provided, use it directly
+  if (process.env.DATABASE_URL) {
+    console.log('Using DATABASE_URL for connection');
+    return {
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false // Required for Vercel + Neon
+      }
+    };
+  }
+
+  // Fallback to individual environment variables for local development
+  if (process.env.DB_HOST && process.env.DB_NAME && process.env.DB_USERNAME && process.env.DB_PASSWORD) {
+    console.log('Using individual database configuration from environment variables');
+    return {
+      user: process.env.DB_USERNAME,
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      password: process.env.DB_PASSWORD,
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      ssl: {
+        rejectUnauthorized: false
+      }
+    };
+  }
+
+  // If no database configuration is found, throw an error
+  throw new Error('No database configuration found. Please set either DATABASE_URL or DB_* environment variables.');
+};
+
+// Create the connection pool
+const poolConfig = {
+  ...getPoolConfig(),
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20
+};
+
+console.log('Database pool configuration:', {
+  ...poolConfig,
+  connectionString: poolConfig.connectionString ? '***' : 'not set',
+  password: poolConfig.password ? '***' : 'not set'
 });
+
+const pool = new Pool(poolConfig);
 
 // Test the database connection on startup
 (async () => {

@@ -1,0 +1,142 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth-options';
+import { createAssignment, getRegisterDetails } from '@/lib/assignmentDb';
+
+// Configure the API route for file uploads
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
+
+// File size limit: 20MB in bytes
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+// Allowed file types
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+];
+
+async function parseFormData(request: Request) {
+  try {
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      throw new Error('Invalid content type. Expected multipart/form-data');
+    }
+
+    const formData = await request.formData();
+    return formData;
+  } catch (error) {
+    console.error('Error parsing form data:', error);
+    
+    if (error instanceof Error && error.message.includes('Unexpected end of multipart data')) {
+      throw new Error('The uploaded file might be corrupted or the connection was interrupted.');
+    }
+    
+    throw new Error(`Failed to parse form data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({ message: 'API route for assignments' });
+}
+
+export async function POST(request: Request) {
+  console.log('=== START: /api/assignments ===');
+  
+  try {
+    // Get user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Parse form data
+    const formData = await parseFormData(request);
+    const file = formData.get('file') as File | null;
+
+    // Validate file
+    if (!file || !(file instanceof File) || !file.size) {
+      return NextResponse.json(
+        { error: 'No file provided or invalid file format' },
+        { status: 400 }
+      );
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { 
+          error: 'File too large',
+          details: `Maximum file size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid file type',
+          details: `Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Read file as buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Get register details
+    const register = await getRegisterDetails(Number(session.user.email));
+    if (!register) {
+      return NextResponse.json(
+        { error: 'Register not found' },
+        { status: 404 }
+      );
+    }
+
+    // Save to database
+    const assignment = await createAssignment({
+      register_id: register.id,
+      file_name: file.name,
+      file_data: buffer,
+      file_size: file.size,
+      file_type: file.type
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: assignment.id,
+        fileName: assignment.file_name,
+        fileSize: assignment.file_size,
+        fileType: assignment.file_type,
+        createdAt: assignment.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in /api/assignments:', error);
+    
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: error instanceof Error ? error.message : 'Unknown error'
+        })
+      },
+      { status: 500 }
+    );
+  } finally {
+    console.log('=== END: /api/assignments ===');
+  }
+}

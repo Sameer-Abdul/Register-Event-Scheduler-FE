@@ -332,7 +332,7 @@ const RegisterForm: React.FC = () => {
 
   const handleSubmit = async (
     values: RegistrationFormValues,
-    { setSubmitting }: FormikHelpers<RegistrationFormValues>
+    { setSubmitting, setFieldError }: FormikHelpers<RegistrationFormValues>
   ) => {
     try {
       setIsLoading(true);
@@ -356,11 +356,18 @@ const RegisterForm: React.FC = () => {
         sessionStorage.setItem('registrationId', registrationId);
         router.push(`/payment/new?registrationId=${registrationId}`);
       } else {
-        setError(data.error || 'Registration failed. Please try again.');
+        // Check if this is an email already exists error
+        if (data.field === 'email') {
+          setFieldError('email', data.message || 'This email is already registered');
+          // Scroll to the email field
+          document.getElementById('email')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          setError(data.message || 'Registration failed. Please try again.');
+        }
       }
     } catch (err) {
-      setError('An error occurred during registration. Please try again.');
       console.error('Registration error:', err);
+      setError('An error occurred during registration. Please try again.');
     } finally {
       setIsLoading(false);
       setSubmitting(false);
@@ -408,7 +415,7 @@ const RegisterForm: React.FC = () => {
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
             >
-              {({ values, setFieldValue, isSubmitting }) => (
+              {({ values, errors, touched, setFieldValue, isSubmitting }) => (
                 <Form className="space-y-8">
                   {/* Personal Information Section */}
                   <div className="space-y-6 bg-gray-50 p-6 rounded-lg border border-gray-100">
@@ -463,12 +470,25 @@ const RegisterForm: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1">
-                        <FormField
-                          label="Email"
-                          name="email"
-                          type="email"
-                          className="bg-white rounded-lg"
-                        />
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                          </label>
+                          <Field
+                            id="email"
+                            name="email"
+                            type="email"
+                            className={`mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition duration-200 sm:text-sm p-3 border ${
+                              errors.email && touched.email ? 'border-red-500' : ''
+                            }`}
+                            placeholder="Enter your email"
+                          />
+                          <ErrorMessage name="email">
+                            {(msg) => (
+                              <p className="mt-1 text-sm text-red-600">{msg}</p>
+                            )}
+                          </ErrorMessage>
+                        </div>
                       </div>
                       <div className="space-y-1">
                         <FormField

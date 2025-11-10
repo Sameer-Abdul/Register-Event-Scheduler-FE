@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-// Force dynamic route handling
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Cache-Control': 'no-store, max-age=0',
   'CDN-Cache-Control': 'no-store',
@@ -17,31 +13,20 @@ const corsHeaders = {
 
 export async function GET() {
   try {
-    // Test connection first
-    await query('SELECT 1');
-    
-    // Fetch tenants with their license information
-    const result = await query(`
-      SELECT 
-        t.tenant_id as id, 
-        t.name, 
-        t.email,
-        t.contact_no as "contactNo",
-        t.address,
-        t.image_url as "imageUrl",
-        l.license_type as "licenseType",
-        l.valid_to as "validTo",
-        t.created_at as "createdAt",
-        t.updated_at as "updatedAt"
-      FROM tenant_master t
-      LEFT JOIN license l ON t.tenant_id = l.tenant_id
-      ORDER BY t.name ASC
-    `);
-    
+    // Sample states data - replace with your actual states table query if needed
+    const states = [
+      { id: 1, name: 'Andhra Pradesh' },
+      { id: 2, name: 'Telangana' },
+      { id: 3, name: 'Karnataka' },
+      { id: 4, name: 'Tamil Nadu' },
+      { id: 5, name: 'Kerala' },
+      { id: 6, name: 'Maharashtra' },
+    ];
+
     return new NextResponse(
       JSON.stringify({
         success: true,
-        data: result.rows
+        data: states
       }),
       {
         status: 200,
@@ -52,11 +37,11 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error('Error in /api/tenants-v2:', error);
+    console.error('Error in /api/states:', error);
     return new NextResponse(
       JSON.stringify({
         success: false,
-        error: 'Failed to fetch tenants',
+        error: 'Failed to fetch states',
         details: error instanceof Error ? error.message : 'Unknown error',
         ...(process.env.NODE_ENV === 'development' && { stack: error instanceof Error ? error.stack : undefined })
       }),
@@ -71,8 +56,6 @@ export async function GET() {
   }
 }
 
-// Handle OPTIONS method for CORS preflight
-// This is required for CORS to work with POST/PUT/DELETE requests
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,

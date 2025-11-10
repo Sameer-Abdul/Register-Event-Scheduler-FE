@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Calendar, PlusCircle, List, LogOut } from 'lucide-react';
+import { Calendar, PlusCircle, List, LogOut, Upload } from 'lucide-react';
 import { getTenantById } from '@/lib/eventDb';
 import Image from 'next/image';
 
@@ -130,6 +130,11 @@ export default function DashboardLayout({
       name: 'View Data',
       href: '/event-scheduler/dashboard/view-data',
       icon: <List className="h-5 w-5" />,
+    },
+    {
+      name: 'Assignment Submission',
+      href: '/event-scheduler/dashboard/assignment',
+      icon: <Upload className="h-5 w-5" />,
     },
   ];
 
